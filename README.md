@@ -89,6 +89,7 @@ Medium blog: https://karetech.medium.com/the-medallion-architecture-spoti-py-cas
 
 ## 📁 Project Structure
 spotify-lakehouse/
+
 ├── ingestion/           # PySpark notebooks for ingesting raw Spotify data (Bronze Layer)
 ├── transformation/      # Data cleaning, enrichment & joins for Silver Layer processing
 ├── aggregations/        # Gold Layer transformations: metrics, KPIs, and aggregations
