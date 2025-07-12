@@ -104,9 +104,7 @@ spotify-lakehouse/
 
 **Patrick Okare.**  
 Certified Azure Data Engineer | Enterprise Data Platform Engineer  
-[LinkedIn Profile]((https://www.linkedin.com/in/patrickokare/))  
-Medium blog: https://karetech.medium.com/the-medallion-architecture-spoti-py-case-study-the-lake-house-model-the-beginning-822db0372feb
-
+[LinkedIn Profile] https://www.linkedin.com/in/patrickokare/
 ---
 
 ## ⭐ Acknowledgements
