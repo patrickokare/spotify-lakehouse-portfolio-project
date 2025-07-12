@@ -89,7 +89,6 @@ Medium blog: https://karetech.medium.com/the-medallion-architecture-spoti-py-cas
 
 ## 📁 Project Structure
 spotify-lakehouse/
-│
 ├── ingestion/                  # PySpark notebooks for Bronze, Silver, Gold
 ├── utils/                     # Metadata DB schemas and parameter templates
 ├── pipelines/                  # Synapse or ADF JSON templates
