@@ -89,12 +89,13 @@ Medium blog: https://karetech.medium.com/the-medallion-architecture-spoti-py-cas
 
 ## 📁 Project Structure
 spotify-lakehouse/
-├── ingestion/                  # PySpark notebooks for Bronze, Silver, Gold
-├── utils/                     # Metadata DB schemas and parameter templates
-├── pipelines/                  # Synapse or ADF JSON templates
-├── docs/                       # Architecture diagrams, schema mappings
-├── aggregations/                 # Metrics, Dashboards & Power BI assets
-└── README.md                   # Project documentation
+├── ingestion/           # PySpark notebooks for ingesting raw Spotify data (Bronze Layer)
+├── transformation/      # Data cleaning, enrichment & joins for Silver Layer processing
+├── aggregations/        # Gold Layer transformations: metrics, KPIs, and aggregations
+├── pipelines/           # Synapse/ADF pipeline templates for orchestration
+├── utils/               # Metadata-driven configs, reusable functions, and schema templates
+├── docs/                # Architecture diagrams, ERDs, and project documentation
+└── README.md            # Main project readme with overview and usage instructions
 
 ---
 
