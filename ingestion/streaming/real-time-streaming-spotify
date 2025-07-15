@@ -1,0 +1,13 @@
+
+streaming_df = (
+    spark.readStream
+         .schema(songs_schema)
+         .json(f"{landing_folder_path}.../songs_stream/")
+)
+
+streaming_df.writeStream \
+    .format("delta") \
+    .outputMode("append") \
+    .option("checkpointLocation", "/mnt/.../checkpoints/songs") \
+    .start(f"{raw_folder_path}/streaming/songs/")
+
