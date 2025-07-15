@@ -49,6 +49,15 @@ Medium blog: https://karetech.medium.com/the-medallion-architecture-spoti-py-cas
 - `lake/silver/music/spotify/web-api/entityname`
 - `lake/gold/music`
 
+
+### Schema Names in Databricks
+- spotify_raw
+- spotify_cleansed
+- spotify_modelled
+
+
+
+
 ---
 
 ## 📊 Key Features
@@ -87,9 +96,10 @@ Medium blog: https://karetech.medium.com/the-medallion-architecture-spoti-py-cas
 
 ---
 
+<pre>
 ## 📁 Project Structure
+<code>
 spotify-lakehouse/
-
 ├── ingestion/           # PySpark notebooks for ingesting raw Spotify data (Bronze Layer)
 ├── transformation/      # Data cleaning, enrichment & joins for Silver Layer processing
 ├── aggregations/        # Gold Layer transformations: metrics, KPIs, and aggregations
@@ -97,6 +107,9 @@ spotify-lakehouse/
 ├── utils/               # Metadata-driven configs, reusable functions, and schema templates
 ├── docs/                # Architecture diagrams, ERDs, and project documentation
 └── README.md            # Main project readme with overview and usage instructions
+</code>
+</pre>
+
 
 ---
 
