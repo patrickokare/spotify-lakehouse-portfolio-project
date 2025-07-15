@@ -14,7 +14,7 @@
 
 # Step 1: Create the destination table if it doesn't exist
 spark.sql(f"""
-    CREATE TABLE IF NOT EXISTS spotify_modelled.FileNameAgg
+    CREATE TABLE IF NOT EXISTS spotify_modelled.NumOfSongsAgg
     (
         ID INT,
         ArtistName STRING,
@@ -51,7 +51,7 @@ spark.sql(f"""
 
 # Step 3: Merge the result into the Delta table
 spark.sql(f"""
-    MERGE INTO spotify_modelled.FileNameAgg AS target
+    MERGE INTO spotify_modelled.NumOfSongsAgg AS target
     USING vFileNameAgg AS source
     ON target.ArtistName = source.ArtistName AND target.AlbumName = source.AlbumName
     WHEN MATCHED AND target.HASH_ID <> source.HASH_ID THEN
@@ -69,5 +69,5 @@ spark.sql(f"""
 
 # Step 4: Preview the result
 # MAGIC %sql
-# MAGIC SELECT * FROM spotify_modelled.FileNameAgg
+# MAGIC SELECT * FROM spotify_modelled.NumOfSongsAgg
 # MAGIC ORDER BY NumberOfSongs DESC
