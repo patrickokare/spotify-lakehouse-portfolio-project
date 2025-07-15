@@ -1,5 +1,15 @@
 # Databricks notebook source
-# MAGIC  %run "/Repos/waleokare@gmail.com/databricks-project/Projects/Technology/Spotify/includes/01_SpotipyCredentials"
+# ------------------------------------------------------------------------------------
+# Title: Spotify Song Ingestion Pipeline (Web API)
+# Description: Extracts songs from a Spotify playlist using Spotipy, lands raw data in ADLS,
+#              applies transformations, and loads it into the raw and cleansed Delta Lake zones.
+# Author: Patrick Okare
+# Date: 2025-07-15
+# ------------------------------------------------------------------------------------
+
+# COMMAND ----------
+
+# MAGIC %run "/Repos/waleokare@gmail.com/databricks-project/Projects/Technology/Spotify/includes/01_SpotipyCredentials"
 
 # COMMAND ----------
 
@@ -15,30 +25,27 @@
 
 # COMMAND ----------
 
+import spotipy
+from pyspark.sql.functions import lit, col, to_timestamp, concat_ws, sha2
+from pyspark.sql.types import StructField, StructType, StringType, LongType
+
+# COMMAND ----------
+
 # Format the timestamp in the desired format
 ingestion_date = est_now.strftime("%Y-%m-%d_%H:%M:%S:%f")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### Source To Landing Zone
+# MAGIC ### 🟢 Source To Landing Zone
 
 # COMMAND ----------
 
-import spotipy
-from pyspark.sql.functions import lit, col, to_timestamp, concat_ws, sha2
-from pyspark.sql.types import IntegerType, StringType, DoubleType, StructField, StructType, LongType
-
-# COMMAND ----------
-
-sp = spotipy.Spotify(client_credentials_manager = client_credentials_manager)
+sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 # COMMAND ----------
 
 SourceQuery = "https://open.spotify.com/playlist/37i9dQZEVXbNG2KDcFcKOF"
-
-# COMMAND ----------
-
 playlist_uri = SourceQuery.split("/")[-1]
 
 # COMMAND ----------
@@ -57,10 +64,17 @@ for row in spotify_dataset['items']:
     song_added = row['added_at']
     album_id = row['track']['album']['id']
     artist_id = row['track']['album']['artists'][0]['id']
-    song_element = {'song_id':song_id,'song_name':song_name,'duration_ms':song_duration,'url':song_url,
-                    'popularity':song_popularity,'song_added':song_added,'album_id':album_id,
-                    'artist_id':artist_id
-                   }
+
+    song_element = {
+        'song_id': song_id,
+        'song_name': song_name,
+        'duration_ms': song_duration,
+        'url': song_url,
+        'popularity': song_popularity,
+        'song_added': song_added,
+        'album_id': album_id,
+        'artist_id': artist_id
+    }
     song_list.append(song_element)
 
 # COMMAND ----------
@@ -69,13 +83,14 @@ songs_landing_df = spark.createDataFrame(song_list)
 
 # COMMAND ----------
 
-# Reduce the number of partitions to 1 before writing
-songs_landing_df.coalesce(1).write.mode("overwrite").json(f"{landing_folder_path}{p_Domain}/{p_ProjectName}/{p_DataSourceName}/{p_EntityName}_{ingestion_date}")
+songs_landing_df.coalesce(1).write.mode("overwrite").json(
+    f"{landing_folder_path}{p_Domain}/{p_ProjectName}/{p_DataSourceName}/{p_EntityName}_{ingestion_date}"
+)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### Landing To Raw Zone
+# MAGIC ### 🟡 Landing To Raw Zone
 
 # COMMAND ----------
 
@@ -96,22 +111,35 @@ songs_raw_df = spark.read.json(path=songs_path, schema=songs_schema)
 
 # COMMAND ----------
 
-# Define the column list to concatenate for the hash key
-hash_columns = ['album_id', 'artist_id', 'duration_ms', 'popularity', 'song_added', 'song_id', 'song_name', 'source_system', 'ingestion_date']
+# MAGIC %md
+# MAGIC ### 🔵 Data Transformations - Applying Business Rules
 
 # COMMAND ----------
+
+hash_columns = [
+    'album_id', 'artist_id', 'duration_ms', 'popularity',
+    'song_added', 'song_id', 'song_name', 'source_system', 'ingestion_date'
+]
 
 songs_raw_df = songs_raw_df.drop('url') \
     .drop_duplicates(subset=['song_id']) \
     .withColumn("song_added", to_timestamp(col("song_added"), "yyyy-MM-dd'T'HH:mm:ss'Z'")) \
     .withColumn("source_system", lit(p_DataSourceName)) \
-    .withColumn("song_added", to_timestamp(col("song_added"), 'yyyy-MM-dd')) \
+    .withColumn("song_added", to_timestamp(col("song_added"), "yyyy-MM-dd")) \
     .withColumn("ingestion_date", lit(ingestion_date)) \
-    .withColumn("HASH_ID", sha2(concat_ws("-", *[col(c) for c in hash_columns if c]), 256))
+    .withColumn("HASH_ID", sha2(concat_ws("-", *[col(c) for c in hash_columns]), 256))
 
 # COMMAND ----------
 
-songs_raw_df.write.format("parquet").mode("overwrite").option('path', f"{raw_folder_path}{p_Domain}/{p_ProjectName}/{p_DataSourceName}/{p_EntityName}").saveAsTable("spotify_raw.raw_ext_songs")
+songs_raw_df.write.format("parquet") \
+    .mode("overwrite") \
+    .option('path', f"{raw_folder_path}{p_Domain}/{p_ProjectName}/{p_DataSourceName}/{p_EntityName}") \
+    .saveAsTable("spotify_raw.raw_ext_songs")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### 🟣 Raw Zone To Cleansed Zone (Upsert using MERGE INTO)
 
 # COMMAND ----------
 
@@ -135,7 +163,14 @@ songs_raw_df.write.format("parquet").mode("overwrite").option('path', f"{raw_fol
 
 # COMMAND ----------
 
-# songs_raw_df.write.format("delta").mode("overwrite").option('path', '/mnt/datamladls26/lake/cleansed/technology/spotify/web-api/songs').saveAsTable("spotify_cleansed.songs")
+# MAGIC %md
+# MAGIC ### 🧱 (Optional) Create Externally Managed Delta Table in Cleansed Zone
+
+# COMMAND ----------
+
+# songs_raw_df.write.format("delta").mode("overwrite") \
+#     .option('path', '/mnt/datamladls26/lake/cleansed/technology/spotify/web-api/songs') \
+#     .saveAsTable("spotify_cleansed.songs")
 
 # COMMAND ----------
 
