@@ -15,19 +15,19 @@
 
 # MAGIC %sql
 # MAGIC CREATE DATABASE IF NOT EXISTS spotify_raw
-# MAGIC LOCATION '/mnt/datamladls26/lake/raw/technology/spotify/web-api/'
+# MAGIC LOCATION '/mnt/datalakename/lake/raw/technology/spotify/web-api/'
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC CREATE DATABASE IF NOT EXISTS spotify_cleansed
-# MAGIC LOCATION '/mnt/datamladls26/lake/cleansed/technology/spotify/web-api/'
+# MAGIC LOCATION '/mnt/datalakename/lake/cleansed/technology/spotify/web-api/'
 
 # COMMAND ----------
 
 # MAGIC %sql
 # MAGIC CREATE DATABASE IF NOT EXISTS spotify_modelled
-# MAGIC LOCATION '/mnt/datamladls26/lake/modelled/technology/spotify/web-api/'
+# MAGIC LOCATION '/mnt/datalakename/lake/modelled/technology/spotify/web-api/'
 
 # COMMAND ----------
 
@@ -47,4 +47,4 @@
 # MAGIC   ingestion_date TIMESTAMP
 # MAGIC )
 # MAGIC USING PARQUET
-# MAGIC LOCATION '/mnt/datamladls26/lake/raw/technology/spotify/web-api/albums/'
+# MAGIC LOCATION '/mnt/datalakename/lake/raw/technology/spotify/web-api/albums/'
