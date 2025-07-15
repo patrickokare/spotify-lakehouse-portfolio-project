@@ -45,8 +45,8 @@ sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 # COMMAND ----------
 
-SourceQuery = "https://open.spotify.com/playlist/37i9dQZEVXbNG2KDcFcKOF"
-playlist_uri = SourceQuery.split("/")[-1]
+SourceLink = "https://open.spotify.com/playlist/37i9dQZEVXbNG2KDcFcKOF"
+playlist_uri = SourceLink.split("/")[-1]
 
 # COMMAND ----------
 
