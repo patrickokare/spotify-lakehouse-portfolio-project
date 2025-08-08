@@ -119,8 +119,7 @@ spotify-lakehouse/
 Certified Azure Data Engineer | Enterprise Data Platform Engineer  
 [LinkedIn Profile] https://www.linkedin.com/in/patrickokare/
 ---
-- **Patrick Okare.**  
-  Lead Data Engineer | Data Storyteller | Building Lakehouses with Purpose
+  - Lead Data Engineer | Data Storyteller | Building Lakehouses with Purpose
   
 ## ⭐ Acknowledgements
 
