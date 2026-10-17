@@ -1,0 +1,30 @@
+# Databricks Asset Bundle
+#   databricks bundle deploy -t dev
+#   databricks bundle run spotify_setup -t dev
+#   databricks bundle run spotify_daily_load -t dev
+bundle:
+  name: spotify-lakehouse
+
+include:
+  - resources/*.yml
+
+variables:
+  lake_root:
+    description: Root of the data lake (landing + lake folders)
+    default: /mnt/datalake
+  playlist_id:
+    description: Spotify playlist to track
+    default: 37i9dQZEVXbNG2KDcFcKOF
+  node_type:
+    description: Worker VM size
+    default: Standard_DS3_v2
+
+targets:
+  dev:
+    mode: development
+    default: true
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}

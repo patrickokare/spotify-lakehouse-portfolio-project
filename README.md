@@ -1,135 +1,117 @@
 # 🎧 Spotify Lakehouse Integration
 
-A modern data platform project built on Medallion Architecture (Bronze, Silver, Gold) to process and analyze Spotify streaming data. This project demonstrates end-to-end data engineering capabilities—from ingestion to analytics—using Apache Spark, Delta Lake, and Azure technologies.
+[![CI](https://github.com/patrickokare/spotify-lakehouse-portfolio-project/actions/workflows/ci.yml/badge.svg)](https://github.com/patrickokare/spotify-lakehouse-portfolio-project/actions/workflows/ci.yml)
 
----
+A Medallion-architecture lakehouse on **Databricks + Delta Lake** that pulls a Spotify playlist from the Web API every day and turns it into clean, reportable tables for songs, albums and artists.
 
-## 🧠 Project Overview
-
-This solution integrates Spotify streaming data and builds a scalable lakehouse architecture to deliver curated insights on:
-
-- Artist popularity metrics  
-- User listening patterns  
-- Genre trends and dynamics  
-
-It emphasizes clean, reliable data pipelines with data quality validation and metadata-driven orchestration.
+> 📍 Source: Spotify Web API (playlist tracks)  
+> 🧱 Layers: Landing → Raw → Cleansed → Modelled  
+> ☁️ Platform: Azure Databricks, ADLS, Key Vault, Delta Lake, Asset Bundles
 
 ---
 
 ## Storytelling
-Medium blog: https://karetech.medium.com/the-medallion-architecture-spoti-py-case-study-the-lake-house-model-the-beginning-822db0372feb
-
----
-## 🛠️ Tech Stack
-
-| Layer           | Technology                          | Description                                                                 |
-|----------------|--------------------------------------|-----------------------------------------------------------------------------|
-| Storage         | Azure Data Lake Storage (ADLS)       | Multi-zone storage for raw to curated datasets                             |
-| Processing      | Apache Spark + PySpark               | Distributed data transformation and analysis                               |
-| Orchestration   | Synapse Pipelines / Azure Functions  | Scheduled movement of data across architecture layers                      |
-| Tables          | Delta Lake                           | Versioned, ACID-compliant tables across all layers                         |
-| Security        | Azure Key Vault / Entra ID           | Secures access to secrets and credentials                                  |
-| Metadata        | Metadata DB + Parameterization       | Dynamic runtime configuration across notebooks                             |
-| Visualization   | Databricks Dashboards / Power BI     | Interactive dashboards for final Gold Layer outputs                        |
+Medium blog: [The Medallion Architecture: Spoti-py case study](https://karetech.medium.com/the-medallion-architecture-spoti-py-case-study-the-lake-house-model-the-beginning-822db0372feb)
 
 ---
 
-## 🧱 Architecture Design
+## 🧱 Architecture
 
-### Medallion Structure
+![Solution architecture](docs/solution_architecture.jpeg)
 
-- **🔹 Bronze Layer** – Raw ingestion from Spotify API (JSON files via Azure Function or notebooks).
-- **⚙️ Silver Layer** – Cleaned and enriched data with deduplication, standardization, and joins.
-- **🏆 Gold Layer** – Curated, business-ready metrics and analytics for reporting and dashboards.
+| Layer | Schema | Contents |
+|---|---|---|
+| **Landing** | ADLS folder | Raw API response, one JSON file per run |
+| **Raw** | `spotify_raw` | Albums, artists, songs from every run (append-only history) |
+| **Cleansed** | `spotify_cleansed` | One current row per album / artist / song (`MERGE`, change detection with `HASH_ID`) |
+| **Modelled** | `spotify_modelled` | `SongsPopularityAgg`, `AlbumSummaryAgg`, `ArtistSummaryAgg` |
 
-### Data Zones in ADLS
+More detail: [architecture](docs/architecture.md) · [runbook](docs/runbook.md)
 
-- `landing/databricks/music/spotify/web-api/entityname`
-- `lake/bronze/music/spotify/web-api/entityname`
-- `lake/silver/music/spotify/web-api/entityname`
-- `lake/gold/music`
+---
 
+## 📁 Project Structure
 
-### Schema Names in Databricks
-- spotify_raw
-- spotify_cleansed
-- spotify_modelled
+```bash
+├── databricks.yml              # Databricks Asset Bundle (dev / prod)
+├── resources/                  # Jobs: setup + daily load
+├── src/
+│   ├── spotify_lakehouse/      # Python package: config, API parsing, transforms, data quality
+│   └── notebooks/
+│       ├── 00_setup/           # Schemas and tables
+│       ├── 01_ingestion/       # API -> landing, landing -> raw -> cleansed
+│       ├── 02_modelled/        # Reporting tables
+│       └── 03_quality/         # Post-load data quality checks
+├── schema/                     # DDL (raw, cleansed) and reporting queries (modelled)
+├── tests/                      # pytest unit tests
+├── docs/                       # Architecture, runbook, diagrams
+└── .github/workflows/          # CI (lint, tests, bundle validate) + deploy
+```
 
+---
 
+## 🚀 Run it
 
+```bash
+pip install -r requirements-dev.txt
+ruff check . && pytest                       # same checks as CI
+
+databricks bundle deploy -t dev
+databricks bundle run spotify_setup -t dev         # once
+databricks bundle run spotify_daily_load -t dev
+```
+
+Spotify credentials are read from a Key Vault-backed secret scope - see the [runbook](docs/runbook.md).
 
 ---
 
 ## 📊 Key Features
 
-- Developed modular PySpark notebooks for batch transformations.
-- Automated data ingestion using Azure Logic Apps and Functions.
-- Designed Spark SQL stored procedures for listening to trends and artist KPIs.
-- Implemented dynamic, metadata-driven pipelines for scalable operations.
-- Enabled future extensibility to other platforms (e.g., Apple Music, SoundCloud).
-- Designed with source-system alignment and transparency in mind for traceability.
+- **One API call per run** - the playlist is landed once and parsed into three entities
+- **Pagination and retries** - handles playlists over 100 tracks and transient API errors
+- **Tested parsing** - removed tracks, partial release dates (`"2019"`) and multi-artist tracks are covered by unit tests
+- **Incremental upserts** - cleansed tables only update rows whose content changed
+- **Data quality gates** - each batch is checked before it reaches cleansed; the full model is checked after every run (nulls, duplicates, ranges, song → album/artist relationships)
+- **CI/CD** - GitHub Actions runs lint + tests on every push; Databricks Asset Bundles deploy the jobs
 
 ---
 
-## 📈 Sample Use Cases
+## 📈 Insights
 
-- Top 10 most-streamed artists per region  
-- Weekly listening trends by genre  
-- Monthly active users per playlist cluster  
+![Aggregation mind map](docs/aggregation_mindmap.webp)
+
+- Which songs are the most popular right now, and how does that change day to day (raw history)?
+- Which albums and artists have the most tracks in the playlist?
+- How long are the top songs?
+
+![Dashboard 1](docs/dashboard_1.webp)
+![Dashboard 2](docs/dashboard_2.webp)
 
 ---
 
-## 🔐 Security & Compliance
+## 🔐 Security
 
-- Secrets stored in Azure Key Vault  
-- Enforced data integrity through schema validation  
-- Includes source system metadata for audit traceability  
+- Spotify credentials in Azure Key Vault, read through a Databricks secret scope
+- No secrets in code or job definitions
+- Source system and source file recorded on every row for traceability
 
 ---
 
 ## 🚀 Future Enhancements
 
-- Integrate Apple Music & SoundCloud APIs  
-- Add CI/CD using GitHub Actions + Databricks CLI  
-- Implement row-level security on Gold datasets  
-- Expand to real-time ingestion via Event Hubs or Kafka  
-
----
-
-<pre>
-## 📁 Project Structure
-<code>
-spotify-lakehouse/
-├── ingestion/           # PySpark notebooks for ingesting raw Spotify data (Bronze Layer)
-├── transformation/      # Data cleaning, enrichment & joins for Silver Layer processing
-├── aggregations/        # Gold Layer transformations: metrics, KPIs, and aggregations
-├── pipelines/           # Synapse/ADF pipeline templates for orchestration
-├── utils/               # Metadata-driven configs, reusable functions, and schema templates
-├── docs/                # Architecture diagrams, ERDs, and project documentation
-└── README.md            # Main project readme with overview and usage instructions
-</code>
-</pre>
-
+- Track several playlists (metadata table of playlist ids)
+- Daily popularity snapshot fact for trend analysis
+- Real-time ingestion via Event Hubs / Auto Loader
+- Move from DBFS mounts to Unity Catalog volumes
 
 ---
 
 ## 🧑‍💻 Author
 
-**Patrick Okare.**  
-Certified Azure Data Engineer | Enterprise Data Platform Engineer  
-[LinkedIn Profile] https://www.linkedin.com/in/patrickokare/
----
-  - Lead Data Engineer | Data Storyteller | Building Lakehouses with Purpose
-  
-## ⭐ Acknowledgements
-
-- Spotify API  
-- Databricks Lakehouse Guides  
-- Microsoft Azure Data Engineering community
-
----
+**Patrick Okare**  
+Certified Azure Data Engineer | Lead Data Engineer | Building Lakehouses with Purpose  
+[LinkedIn](https://www.linkedin.com/in/patrickokare/)
 
 ## 📝 License
 
-This project is licensed under the MIT License.
-
+MIT - see [LICENSE](LICENSE).

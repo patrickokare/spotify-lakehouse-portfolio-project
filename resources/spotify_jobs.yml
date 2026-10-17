@@ -1,0 +1,67 @@
+resources:
+  jobs:
+    spotify_setup:
+      name: spotify-setup
+      description: Create schemas and tables. Safe to re-run.
+      job_clusters:
+        - job_cluster_key: main
+          new_cluster: &cluster
+            spark_version: 15.4.x-scala2.12
+            node_type_id: ${var.node_type}
+            num_workers: 0
+            spark_conf:
+              spark.master: "local[*]"
+              spark.databricks.cluster.profile: singleNode
+            custom_tags:
+              ResourceClass: SingleNode
+            data_security_mode: SINGLE_USER
+      parameters:
+        - name: lake_root
+          default: ${var.lake_root}
+      tasks:
+        - task_key: create_schemas_and_tables
+          job_cluster_key: main
+          notebook_task:
+            notebook_path: ../src/notebooks/00_setup/01_create_schemas_and_tables.py
+
+    spotify_daily_load:
+      name: spotify-daily-load
+      description: Spotify API -> landing -> raw -> cleansed -> modelled -> DQ checks
+      schedule:
+        quartz_cron_expression: "0 0 7 * * ?"   # 07:00 every day
+        timezone_id: America/Toronto
+        pause_status: PAUSED
+      max_concurrent_runs: 1
+      job_clusters:
+        - job_cluster_key: main
+          new_cluster: *cluster
+      parameters:
+        - name: lake_root
+          default: ${var.lake_root}
+        - name: playlist_id
+          default: ${var.playlist_id}
+      tasks:
+        - task_key: extract_playlist
+          job_cluster_key: main
+          max_retries: 2
+          min_retry_interval_millis: 60000
+          notebook_task:
+            notebook_path: ../src/notebooks/01_ingestion/01_extract_playlist.py
+
+        - task_key: load_raw_and_cleansed
+          depends_on: [{ task_key: extract_playlist }]
+          job_cluster_key: main
+          notebook_task:
+            notebook_path: ../src/notebooks/01_ingestion/02_load_raw_and_cleansed.py
+
+        - task_key: build_reporting_tables
+          depends_on: [{ task_key: load_raw_and_cleansed }]
+          job_cluster_key: main
+          notebook_task:
+            notebook_path: ../src/notebooks/02_modelled/01_build_reporting_tables.py
+
+        - task_key: quality_checks
+          depends_on: [{ task_key: build_reporting_tables }]
+          job_cluster_key: main
+          notebook_task:
+            notebook_path: ../src/notebooks/03_quality/01_run_quality_checks.py
